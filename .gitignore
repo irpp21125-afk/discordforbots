@@ -1,0 +1,28 @@
+# .env — содержит токены и пароли, не коммитить
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.egg-info/
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# C++ build
+cpp_app/build/
+
+# Логи
+*.log
+
+# Старые данные (после миграции не нужны в репозитории)
+users.json
+profiles.json
+tickets.json
