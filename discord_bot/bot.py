@@ -163,7 +163,13 @@ async def main():
                 raise
             await asyncio.sleep(5)
 
-    token = os.getenv("DISCORD_TOKEN", "")
+    token = (
+        os.getenv("DISCORD_TOKEN")
+        or os.getenv("DISCORD_BOT_TOKEN")
+        or os.getenv("BOT_TOKEN")
+        or os.getenv("TOKEN")
+        or ""
+    ).strip("'\"")
     if not token:
         raise RuntimeError(
             "DISCORD_TOKEN не задан. Скопируйте .env.example в .env "
