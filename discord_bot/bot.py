@@ -152,16 +152,21 @@ async def check_reminders():
 
 
 async def main():
-    # MySQL может стартовать дольше бота (особенно в docker) — ждём базу
-    for attempt in range(1, 11):
+    # MySQL может быть внешней или стартовать позже бота. Падать здесь
+    # нельзя: панель хостинга засчитает это как краш и остановит приложение.
+    attempt = 0
+    while True:
         try:
             init_db()
             break
         except Exception as e:
-            log.warning("База недоступна (попытка %s/10): %s", attempt, e)
-            if attempt == 10:
-                raise
-            await asyncio.sleep(5)
+            attempt += 1
+            delay = min(15 * attempt, 120)
+            log.error(
+                "База недоступна (попытка %s), повтор через %s сек: %s",
+                attempt, delay, e,
+            )
+            await asyncio.sleep(delay)
 
     token = (
         os.getenv("DISCORD_TOKEN")

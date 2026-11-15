@@ -41,8 +41,17 @@ def main():
 
     script = sys.argv[1]
     extra = sys.argv[2:]
+
+    # относительный путь ищем относительно каталога проекта, а не cwd
+    if not os.path.isabs(script):
+        candidate = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), script
+        )
+        if os.path.exists(candidate):
+            script = candidate
+
     if not os.path.exists(script):
-        log(f"Файл не найден: {script}")
+        log(f"Файл не найден: {script} (cwd={os.getcwd()})")
         sys.exit(1)
 
     log(f"Watchdog старт: {script} {' '.join(extra)}")
