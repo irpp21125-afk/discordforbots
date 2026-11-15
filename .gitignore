@@ -26,3 +26,6 @@ cpp_app/build/
 users.json
 profiles.json
 tickets.json
+
+# Неподконтрольные каталоги
+webapp/

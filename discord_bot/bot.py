@@ -3,6 +3,10 @@
 Модули (по меню панели):
   Обращения, Модерация, Наказания, Роли, Экономика, Розыгрыши,
   Автоматизация, Оповещения, Общие настройки.
+
+На хостинге (FadeHost):
+  - Порт берётся из переменной PORT
+  - API поднимается внутри процесса бота (один порт)
 """
 
 import asyncio
@@ -183,6 +187,19 @@ async def main():
     for cog in COGS:
         await bot.load_extension(cog)
         log.info("Ког загружен: %s", cog)
+
+    # ---------- API внутри процесса (FadeHost — один порт) ----------
+    api_enabled = os.getenv("API_ENABLED", "1").lower() not in ("0", "false", "")
+    if api_enabled:
+        try:
+            from flask_api import start_in_thread
+            host = os.getenv("API_HOST", "0.0.0.0")
+            port = int(os.getenv("API_PORT") or os.getenv("PORT") or "5000")
+            start_in_thread(host, port)
+            log.info("API встроен в процесс (порт %s)", port)
+        except Exception as e:
+            log.error("Не удалось поднять API: %s", e)
+
     await bot.start(token)
 
 

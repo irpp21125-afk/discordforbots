@@ -1,15 +1,15 @@
-# Support Bot — Discord + MySQL + C++ панель
+# Support Bot — Discord-бот + MySQL + Панели управления
 
 Система поддержки: Discord-бот с модулями (Обращения, Модерация,
 Наказания, Роли, Экономика, Розыгрыши, Автоматизация, Оповещения),
-общая MySQL-база и CLI-панель управления на C++.
+общая MySQL-база и две панели: CLI на C++ и GUI на Python (Windows).
 
 ## Архитектура
 
 ```
 ┌──────────────┐   ┌──────────────┐   ┌──────────────────┐
-│ Discord-бот  │   │  C++ панель  │   │  notify.py       │
-│ (discord.py) │   │  (CLI, MySQL │   │ (вебхуки Discord)│
+│ Discord-бот  │   │  C++ панель  │   │  Flask API       │
+│ (discord.py) │   │  (CLI, MySQL │   │ (HTTP, X-API-Key)│
 │              │   │    C API)    │   │                  │
 └──────┬───────┘   └──────┬───────┘   └────────┬─────────┘
        │                  │                    │
@@ -17,6 +17,12 @@
                      ┌────▼─────┐
                      │  MySQL   │  support_bot (schema.sql)
                      └──────────┘
+                              ▲
+                              │ HTTP / X-API-Key
+                     ┌────────┴─────────┐
+                     │  Windows-панель  │
+                     │  (Python GUI)    │
+                     └──────────────────┘
 ```
 
 ## Быстрый старт
@@ -55,28 +61,63 @@ python discord_bot\bot.py
 Пригласите бота с правами: Manage Channels, Manage Roles, Kick/Ban,
 Moderate Members (ссылка-приглашение в Developer Portal → OAuth2).
 
-### 5. C++ панель
+### 5. C++ панель (CLI)
 
 См. `cpp_app/README.md` (сборка через CMake + MySQL C API).
 
-### 6. Уведомления в Discord (опционально)
+### 6. Windows-панель (GUI)
+
+Графическое приложение на Python (Tkinter) — работает через HTTP API,
+не требует MySQL на клиенте.
+
+**Запуск из исходников:**
+```bat
+python desktop\app.py
+```
+
+**Сборка .exe:**
+```bat
+build_exe.bat
+```
+Результат: `dist\SupportBotPanel.exe` (один файл, ~15 МБ).
+
+**Сборка установщика:**
+```bat
+installer\build_installer.bat
+```
+Результат: `installer\SupportBotPanel_Setup.exe` (раздавать пользователям).
+
+**Подключение:**
+1. В поле «Сервер» введите `http://ВАШ_ХОСТИНГ:ПОРТ`
+2. В поле «API-ключ» — значение `API_KEY` из `.env` на сервере
+3. Нажмите «Подключиться»
+
+Возможности: статистика, обращения (ответы/закрытие), пользователи
+(XP/привилегии), наказания, FAQ, настройки, рассылка.
+
+### 7. Уведомления в Discord (опционально)
 
 Задайте `DISCORD_WEBHOOK_URL` в `.env` и запустите `python notify.py`.
 
 ## Структура
 
 ```
-├── schema.sql            — MySQL-схема (12 таблиц)
+├── schema.sql            — MySQL-схема (18 таблиц)
 ├── db.py                 — слой доступа к MySQL
+├── flask_api.py          — HTTP API (Flask)
+├── run_forever.py        — watchdog для 24/7 работы
+├── main.py               — точка входа для FadeHost
 ├── user.py / profile.py  — пользователи и профили
 ├── support.py            — тикет-система
 ├── admin.py              — управление правами
 ├── notify.py             — уведомления через Discord-вебхук
 ├── migrate_to_mysql.py   — перенос данных из JSON
+├── bot_commands.json     — справочник команд
 ├── discord_bot/          — Discord-бот
 │   ├── bot.py            — запуск, коги, фоновые задачи
 │   ├── utils.py          — права, настройки гильдий, аудит
 │   └── cogs/             — модули из меню панели
+│       ├── general.py    — Общие настройки, Баннер, Конфигурация
 │       ├── tickets.py    — Обращения
 │       ├── moderation.py — Модерация + Наказания + аудит
 │       ├── roles.py      — Управление ролями
@@ -84,7 +125,18 @@ Moderate Members (ссылка-приглашение в Developer Portal → OA
 │       ├── giveaway.py   — Розыгрыши
 │       ├── automod.py    — Автоматизация
 │       ├── alerts.py     — Оповещения
-│       └── general.py    — Общие настройки, Баннер, Конфигурация
+│       ├── games.py      — Развлечения
+│       ├── logging_cog.py— Логи
+│       └── user_info.py  — /userinfo, /help, /serverinfo
+├── desktop/              — GUI-панель для Windows
+│   ├── app.py            —Tkinter приложение
+│   └── app.spec          — PyInstaller spec
+├── installer/            — установщик Windows
+│   ├── setup.iss         — скрипт Inno Setup
+│   └── build_installer.bat
+├── build_exe.bat         — сборка .exe через PyInstaller
+├── deploy/               — systemd-юниты, автозапуск
+├── Dockerfile, docker-compose.yml — Docker-развёртывание
 └── cpp_app/              — CLI-панель на C++ (MySQL C API)
 ```
 
