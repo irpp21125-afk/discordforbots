@@ -1,0 +1,19 @@
+[Unit]
+Description=Support Bot (Discord)
+After=network-online.target mysql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# путь к проекту и пользователю — поправьте под себя
+WorkingDirectory=/opt/supportbot
+ExecStart=/opt/supportbot/venv/bin/python run_forever.py discord_bot/bot.py
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=0
+User=supportbot
+Group=supportbot
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

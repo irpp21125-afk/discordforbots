@@ -1,0 +1,77 @@
+# 24/7 запуск: MySQL + Discord-бот + уведомления + API
+#
+#   docker compose up -d --build      # запустить
+#   docker compose logs -f bot        # смотреть лог бота
+#   docker compose restart bot        # перезапустить бота
+#   docker compose down               # остановить
+#
+# После перезагрузки сервера всё поднимется само (restart: unless-stopped).
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: supportbot-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-RootPass2026!}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-support_bot}
+      MYSQL_USER: ${MYSQL_USER:-support_bot}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-BotPass2026!}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-p${MYSQL_ROOT_PASSWORD:-RootPass2026!}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  bot:
+    build: .
+    container_name: supportbot-discord
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # внутри compose база доступна по имени сервиса, не localhost
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: python run_forever.py discord_bot/bot.py
+
+  notify:
+    build: .
+    container_name: supportbot-notify
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: python run_forever.py notify.py
+
+  api:
+    build: .
+    container_name: supportbot-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      # внутри контейнера слушаем 0.0.0.0, иначе API недоступен снаружи
+      API_HOST: 0.0.0.0
+      API_PORT: "5000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-5000}:5000"
+    command: python run_forever.py flask_api.py
+
+volumes:
+  mysql_data:

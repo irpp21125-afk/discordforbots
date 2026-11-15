@@ -1,0 +1,18 @@
+[Unit]
+Description=Support Bot (notify -> Discord webhook)
+After=network-online.target mysql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/supportbot
+ExecStart=/opt/supportbot/venv/bin/python run_forever.py notify.py
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=0
+User=supportbot
+Group=supportbot
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

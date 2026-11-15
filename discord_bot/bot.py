@@ -11,12 +11,13 @@ import os
 import sys
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from db import init_db  # noqa: E402
+from db import DB, init_db  # noqa: E402
 
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))), ".env"))
@@ -59,6 +60,31 @@ async def on_ready():
     # фоновые задачи
     bot.loop.create_task(check_giveaways())
     bot.loop.create_task(check_mute_expiry())
+    bot.loop.create_task(check_reminders())
+
+
+@bot.event
+async def on_error(event_method, *args, **kwargs):
+    """Логируем ошибку вместо падения бота."""
+    log.exception("Необработанная ошибка в %s", event_method)
+
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction,
+                               error: app_commands.AppCommandError):
+    """Ошибка в слэш-команде не должна ронять бота."""
+    if isinstance(error, app_commands.MissingPermissions):
+        msg = "❌ Недостаточно прав для этой команды."
+    elif isinstance(error, app_commands.CommandNotFound):
+        msg = "❌ Команда не найдена. Используйте /help"
+    else:
+        log.exception("Ошибка команды", exc_info=error)
+        msg = f"⚠️ Ошибка: {error}"
+
+    if interaction.response.is_done():
+        await interaction.followup.send(msg, ephemeral=True)
+    else:
+        await interaction.response.send_message(msg, ephemeral=True)
 
 
 async def check_giveaways():
@@ -87,8 +113,56 @@ async def check_mute_expiry():
             await asyncio.sleep(60)
 
 
+async def check_reminders():
+    """Доставка напоминаний из таблицы reminders."""
+    await bot.wait_until_ready()
+    while True:
+        try:
+            with DB() as db:
+                rows = db.fetchall(
+                    "SELECT * FROM reminders WHERE delivered = 0 "
+                    "AND remind_at <= NOW() LIMIT 20"
+                )
+            for row in rows:
+                delivered = False
+                channel = bot.get_channel(int(row["channel_id"] or 0))
+                if channel:
+                    user = channel.guild.get_member(int(row["user_id"])) \
+                        if getattr(channel, "guild", None) else None
+                    mention = user.mention if user else \
+                        f"<@{row['user_id']}>"
+                    try:
+                        await channel.send(
+                            f"⏰ **Напоминание** {mention}: "
+                            f"{row['message']}"
+                        )
+                        delivered = True
+                    except discord.Forbidden:
+                        delivered = True  # не долбить повторно
+                else:
+                    delivered = True
+                with DB() as db:
+                    db.execute(
+                        "UPDATE reminders SET delivered = %s WHERE id = %s",
+                        (1 if delivered else 0, row["id"]),
+                    )
+        except Exception as e:
+            log.error("reminders check: %s", e)
+        await asyncio.sleep(30)
+
+
 async def main():
-    init_db()
+    # MySQL может стартовать дольше бота (особенно в docker) — ждём базу
+    for attempt in range(1, 11):
+        try:
+            init_db()
+            break
+        except Exception as e:
+            log.warning("База недоступна (попытка %s/10): %s", attempt, e)
+            if attempt == 10:
+                raise
+            await asyncio.sleep(5)
+
     token = os.getenv("DISCORD_TOKEN", "")
     if not token:
         raise RuntimeError(
