@@ -143,15 +143,17 @@ class General(commands.Cog):
 
     @app_commands.command(name="welcomemsg",
                           description="Настроить текст приветствия (админ)")
-    @app_commands.describe(text="Текст (используйте {user} для упоминания)")
-    @app_commands.rename(text="message")
+    @app_commands.describe(
+        message="Текст (используйте {user} для упоминания)"
+    )
     @is_head_admin()
-    async def welcomemsg(self, interaction: discord.Interaction, text: str):
+    async def welcomemsg(self, interaction: discord.Interaction,
+                         message: str):
         set_guild_setting(interaction.guild.id, "welcome_text",
-                          text[:500])
+                          message[:500])
         await interaction.response.send_message(
             f"✅ Текст приветствия обновлён.\n"
-            f"📝 {text[:200]}", ephemeral=True
+            f"📝 {message[:200]}", ephemeral=True
         )
 
     @app_commands.command(name="welcomechannel",
@@ -225,8 +227,7 @@ class General(commands.Cog):
 
     @app_commands.command(name="reminder",
                           description="Напоминание через N минут")
-    @app_commands.describe(minutes="Через сколько минут", text="Текст напоминания")
-    @app_commands.rename(minutes="mins")
+    @app_commands.describe(mins="Через сколько минут", text="Текст напоминания")
     async def reminder(self, interaction: discord.Interaction,
                        mins: int, text: str):
         if mins <= 0 or mins > 1440:

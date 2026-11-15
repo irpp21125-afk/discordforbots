@@ -425,8 +425,7 @@ class Games(commands.Cog):
 
     @app_commands.command(name="monopoly",
                           description="Управление монополией")
-    @app_commands.describe(action="roll|info|buy")
-    @app_commands.rename(action="command")
+    @app_commands.describe(command="roll|info|buy")
     async def monopoly(self, interaction: discord.Interaction,
                        command: str):
         if command == "roll":

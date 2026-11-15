@@ -374,16 +374,15 @@ class Moderation(commands.Cog):
     @app_commands.command(name="say",
                           description="Отправить сообщение от имени бота")
     @app_commands.describe(
-        text="Текст сообщения",
+        message="Текст сообщения",
         channel="Куда отправить (по умолчанию текущий канал)",
     )
-    @app_commands.rename(text="message")
     @is_staff()
-    async def say(self, interaction: discord.Interaction, text: str,
+    async def say(self, interaction: discord.Interaction, message: str,
                   channel: discord.TextChannel = None):
         channel = channel or interaction.channel
         try:
-            await channel.send(text[:2000])
+            await channel.send(message[:2000])
         except discord.Forbidden:
             await interaction.response.send_message(
                 "❌ Нет прав для отправки в этот канал.", ephemeral=True
