@@ -32,6 +32,7 @@ class Moderation(commands.Cog):
                    user: discord.User, reason: str):
         guild = interaction.guild
         moderator = interaction.user
+        await interaction.response.defer(ephemeral=True)
 
         with DB() as db:
             db.execute(
