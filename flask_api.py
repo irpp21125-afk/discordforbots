@@ -44,13 +44,17 @@ from datetime import datetime
 from decimal import Decimal
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 
 from db import DB
 
 load_dotenv()
 
 log = logging.getLogger("api")
+
+DASHBOARD_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "dashboard"
+)
 
 API_KEY = os.getenv("API_KEY", "")
 ADMIN_LOGIN = os.getenv("ADMIN_LOGIN", "admin")
@@ -102,12 +106,19 @@ def _body() -> dict:
 
 
 def create_app() -> Flask:
-    app = Flask(__name__)
+    app = Flask(
+        __name__,
+        static_folder=DASHBOARD_DIR,
+        static_url_path="/static",
+    )
 
     @app.before_request
     def guard():
-        """Все /api/* кроме ping и login требуют ключ."""
-        if request.path in ("/api/ping", "/api/login"):
+        """Все /api/* кроме ping и login требуют ключ.
+        Статика дашборда и главная страница — открыты."""
+        if request.path in ("/", "/api/ping", "/api/login"):
+            return None
+        if request.path.startswith("/static/"):
             return None
         if not request.path.startswith("/api/"):
             return _err("Неизвестный путь", 404)
@@ -119,6 +130,12 @@ def create_app() -> Flask:
     def on_error(exc):
         log.exception("API error")
         return _err(f"Внутренняя ошибка: {exc}", 500)
+
+    # ---------- дашборд ----------
+
+    @app.route("/")
+    def dashboard():
+        return send_from_directory(DASHBOARD_DIR, "index.html")
 
     # ---------- служебное ----------
 
@@ -136,6 +153,22 @@ def create_app() -> Flask:
         if login_ok and pass_ok:
             return _ok(api_key=API_KEY)
         return _err("Неверный логин или пароль", 401)
+
+    # ---------- команды бота ----------
+
+    @app.route("/api/commands")
+    def commands():
+        path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "bot_commands.json"
+        )
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return _ok(commands=data.get("commands", []))
+        except FileNotFoundError:
+            return _ok(commands=[])
+        except json.JSONDecodeError:
+            return _err("bot_commands.json повреждён", 500)
 
     # ---------- статистика ----------
 

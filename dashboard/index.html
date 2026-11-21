@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Support Bot — Панель управления</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ===== ЭКРАН ВХОДА ===== -->
+<div id="login-screen" class="login-screen hidden">
+  <div class="login-card">
+    <div class="login-logo">🤖</div>
+    <h1>Support Bot</h1>
+    <p class="login-sub">Панель управления</p>
+    <input id="login-user" type="text" placeholder="Логин" autocomplete="username">
+    <input id="login-pass" type="password" placeholder="Пароль" autocomplete="current-password">
+    <button id="login-btn" class="btn btn-primary btn-block">Войти</button>
+    <div id="login-error" class="login-error hidden"></div>
+  </div>
+</div>
+
+<!-- ===== ОСНОВНОЙ ИНТЕРФЕЙС ===== -->
+<div id="app" class="app hidden">
+
+  <!-- Сайдбар -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-badge">🤖</div>
+      <span class="logo-text">Панель</span>
+      <button id="collapse-btn" class="collapse-btn" title="Свернуть">◀</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-group">
+        <a class="nav-item active" data-view="home"><span class="ni-icon">🏠</span><span class="ni-text">Главная</span></a>
+        <a class="nav-item" data-view="settings"><span class="ni-icon">⚙️</span><span class="ni-text">Общие настройки</span></a>
+        <a class="nav-item" data-view="audit"><span class="ni-icon">📋</span><span class="ni-text">Аудит</span></a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Конфигурация</div>
+        <a class="nav-item" data-view="commands"><span class="ni-icon">⌨️</span><span class="ni-text">Команды</span></a>
+        <a class="nav-item" data-view="stub" data-stub="Баннер сервера|Настраивается в Discord: /config_set, /server_banner"><span class="ni-icon">🖼️</span><span class="ni-text">Баннер сервера</span><span class="badge">Discord</span></a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Модерация</div>
+        <a class="nav-item" data-view="moderation"><span class="ni-icon">🛡️</span><span class="ni-text">Модерация</span></a>
+        <a class="nav-item" data-view="punishments"><span class="ni-icon">👮</span><span class="ni-text">Наказания</span><span class="badge" id="badge-pun">0</span></a>
+        <a class="nav-item" data-view="audit"><span class="ni-icon">🔍</span><span class="ni-text">Серверный аудит</span></a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Модули</div>
+        <a class="nav-item" data-view="stub" data-stub="Управление ролями|Автороль и роли по уровням настраиваются в Discord: /autorole_set, /levelrole, /giverole"><span class="ni-icon">🎭</span><span class="ni-text">Управление ролями</span></a>
+        <a class="nav-item" data-view="stub" data-stub="Оповещения|Подписки на ключевые слова настраиваются в Discord: /alert_add, /alert_remove"><span class="ni-icon">🔔</span><span class="ni-text">Оповещения</span></a>
+        <a class="nav-item" data-view="faq"><span class="ni-icon">💬</span><span class="ni-text">Сообщения / FAQ</span></a>
+        <a class="nav-item" data-view="stub" data-stub="Автоматизация|Фильтр слов, антиспам и антифлуд настраиваются в Discord: /addword, /antispam, /antiflood, /filtertoggle"><span class="ni-icon">🤖</span><span class="ni-text">Автоматизация</span><span class="badge">Discord</span></a>
+        <a class="nav-item" data-view="tickets"><span class="ni-icon">🎫</span><span class="ni-text">Обращения</span><span class="badge" id="badge-tickets">0</span></a>
+        <a class="nav-item" data-view="stub" data-stub="Голосовые каналы|Голосовые активности и роли за прослушивание настраиваются в Discord"><span class="ni-icon">🔊</span><span class="ni-text">Голосовые каналы</span></a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Активность</div>
+        <a class="nav-item" data-view="users"><span class="ni-icon">👥</span><span class="ni-text">Вовлечённость</span></a>
+        <a class="nav-item" data-view="users"><span class="ni-icon">🏆</span><span class="ni-text">Рейтинг</span></a>
+        <a class="nav-item" data-view="economy"><span class="ni-icon">💰</span><span class="ni-text">Экономика</span></a>
+        <a class="nav-item" data-view="giveaways"><span class="ni-icon">🎉</span><span class="ni-text">Розыгрыши</span><span class="badge" id="badge-gw">0</span></a>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a class="nav-item" id="logout-btn"><span class="ni-icon">🚪</span><span class="ni-text">Выйти</span></a>
+    </div>
+  </aside>
+
+  <!-- Контент -->
+  <main class="content">
+    <header class="topbar">
+      <div class="search-box">
+        <span>🔍</span>
+        <input id="global-search" type="text" placeholder="Поиск пользователей и настроек...">
+      </div>
+      <div class="topbar-right">
+        <span class="conn-dot" id="conn-dot" title="Соединение"></span>
+        <span class="user-name" id="who">Админ</span>
+      </div>
+    </header>
+
+    <div id="view-root" class="view-root"><!-- сюда рендерятся разделы --></div>
+  </main>
+</div>
+
+<!-- ===== МОДАЛЬНОЕ ОКНО ===== -->
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modal-title"></h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-body" class="modal-body"></div>
+  </div>
+</div>
+
+<!-- ===== УВЕДОМЛЕНИЯ ===== -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
